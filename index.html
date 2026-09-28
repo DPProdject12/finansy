@@ -1,0 +1,1229 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2c3e50">
+<title>💰 Контроль финансов</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        font-family: 'Segoe UI', Tahoma, sans-serif;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    html { -webkit-text-size-adjust: 100%; }
+
+    body {
+        background: #f0f2f5;
+        color: #2c3e50;
+        min-height: 100vh;
+        min-height: 100dvh;
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+        transition: background 0.3s, color 0.3s;
+        overflow-x: hidden;
+    }
+
+    /* ============ HEADER ============ */
+    header {
+        background: linear-gradient(135deg, #2c3e50, #34495e);
+        color: white;
+        padding: 16px 20px;
+        padding-top: calc(16px + env(safe-area-inset-top));
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    header h1 { font-size: 1.3rem; white-space: nowrap; }
+    .header-actions {
+        display: flex; gap: 8px; flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+    .icon-btn {
+        background: rgba(255,255,255,0.15);
+        color: white; border: none;
+        padding: 10px 14px;
+        border-radius: 8px; cursor: pointer;
+        font-size: 0.9rem;
+        transition: background 0.2s, transform 0.1s;
+        min-height: 44px; min-width: 44px;
+        display: inline-flex; align-items: center; justify-content: center;
+        gap: 4px; user-select: none;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.3); }
+    .icon-btn:active { transform: scale(0.95); }
+
+    /* ============ CONTAINER ============ */
+    .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+    /* ============ КАРТОЧКИ ============ */
+    .cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 14px; margin-bottom: 18px;
+    }
+    .card {
+        background: white; padding: 18px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        display: flex; flex-direction: column; gap: 6px;
+        border-left: 5px solid #3498db;
+        transition: transform 0.2s, background 0.3s;
+    }
+    .card:hover { transform: translateY(-3px); }
+    .card.balance { border-color: #3498db; }
+    .card.income { border-color: #27ae60; }
+    .card.expense { border-color: #e74c3c; }
+    .card .label {
+        font-size: 0.75rem; color: #7f8c8d;
+        text-transform: uppercase; letter-spacing: 1px;
+    }
+    .card .value {
+        font-size: 1.5rem; font-weight: bold;
+        word-break: break-word;
+    }
+    .card.income .value { color: #27ae60; }
+    .card.expense .value { color: #e74c3c; }
+    .card.balance .value { color: #3498db; }
+    .card.balance.negative .value { color: #e74c3c; }
+
+    /* ============ БЛОКИ ============ */
+    .block {
+        background: white; padding: 18px;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        margin-bottom: 18px;
+        transition: background 0.3s;
+    }
+    h2 { margin-bottom: 14px; font-size: 1.1rem; }
+
+    /* ============ ФОРМА ============ */
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr) auto;
+        gap: 12px; align-items: end;
+    }
+    .form-group {
+        display: flex; flex-direction: column;
+        gap: 5px; min-width: 0;
+    }
+    .form-group label {
+        font-size: 0.75rem; color: #7f8c8d; font-weight: 600;
+    }
+    .form-group input,
+    .form-group select {
+        padding: 12px 10px;
+        border: 1px solid #ddd; border-radius: 8px;
+        font-size: 16px;
+        transition: border-color 0.2s;
+        background: white; color: inherit;
+        width: 100%; min-height: 44px;
+    }
+    .form-group input:focus,
+    .form-group select:focus {
+        outline: none; border-color: #3498db;
+    }
+    .btn-add {
+        padding: 12px 22px;
+        background: #27ae60; color: white;
+        border: none; border-radius: 8px;
+        font-size: 1rem; font-weight: bold;
+        cursor: pointer; min-height: 44px;
+        transition: background 0.2s, transform 0.1s;
+        white-space: nowrap;
+    }
+    .btn-add:hover { background: #219150; }
+    .btn-add:active { transform: scale(0.97); }
+
+    /* ============ ФИЛЬТРЫ ============ */
+    .filters {
+        display: flex; flex-wrap: wrap;
+        gap: 8px; margin-bottom: 14px;
+    }
+    .filters input,
+    .filters select {
+        padding: 10px 12px;
+        border: 1px solid #ddd; border-radius: 8px;
+        font-size: 16px; background: white; color: inherit;
+        min-height: 44px; flex: 1 1 140px; min-width: 0;
+    }
+    .period-btn {
+        padding: 10px 14px;
+        border: 1px solid #ddd;
+        background: white; color: inherit;
+        border-radius: 8px; cursor: pointer;
+        font-size: 0.85rem; min-height: 44px;
+        flex: 0 0 auto;
+        transition: all 0.2s;
+    }
+    .period-btn:active { transform: scale(0.95); }
+    .period-btn.active {
+        background: #3498db; color: white;
+        border-color: #3498db;
+    }
+    .btn-manage-cat {
+        padding: 10px 14px;
+        background: #9b59b6; color: white;
+        border: none; border-radius: 8px;
+        cursor: pointer; font-size: 0.85rem;
+        min-height: 44px; flex: 0 0 auto;
+        transition: background 0.2s, transform 0.1s;
+        white-space: nowrap;
+    }
+    .btn-manage-cat:hover { background: #8e44ad; }
+    .btn-manage-cat:active { transform: scale(0.95); }
+
+    /* ============ ТАБЛИЦА ============ */
+    .table-wrapper {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin: 0 -18px; padding: 0 18px;
+        scrollbar-width: thin;
+    }
+    .table-wrapper::-webkit-scrollbar { height: 6px; }
+    .table-wrapper::-webkit-scrollbar-thumb {
+        background: #ccc; border-radius: 3px;
+    }
+    table {
+        width: 100%; border-collapse: collapse;
+        min-width: 640px;
+    }
+    th, td {
+        padding: 12px 14px; text-align: left;
+        border-bottom: 1px solid #ecf0f1;
+        white-space: nowrap;
+    }
+    td:nth-child(5) {
+        white-space: normal;
+        max-width: 220px;
+        word-break: break-word;
+    }
+    th {
+        background: #f8f9fa;
+        font-weight: 600; color: #7f8c8d;
+        font-size: 0.75rem; text-transform: uppercase;
+    }
+    tbody tr { cursor: pointer; transition: background 0.15s; }
+    tbody tr:hover { background: #f8f9fa; }
+    tbody tr:active { background: #eaf2fb; }
+    .type-income { color: #27ae60; font-weight: bold; }
+    .type-expense { color: #e74c3c; font-weight: bold; }
+    .empty { text-align: center; padding: 40px; color: #95a5a6; }
+    .btn-delete {
+        background: #e74c3c; color: white;
+        border: none; padding: 8px 14px;
+        border-radius: 6px; cursor: pointer;
+        font-size: 0.8rem; min-height: 36px;
+        transition: background 0.2s, transform 0.1s;
+    }
+    .btn-delete:hover { background: #c0392b; }
+    .btn-delete:active { transform: scale(0.95); }
+
+    /* ============ ГРАФИКИ ============ */
+    .charts {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 18px;
+    }
+    .chart-container {
+        background: #f8f9fa; padding: 14px;
+        border-radius: 10px;
+        min-height: 280px; position: relative;
+    }
+    .chart-container h3 {
+        font-size: 0.9rem; margin-bottom: 10px;
+        text-align: center;
+    }
+    .chart-container canvas { max-height: 260px !important; }
+
+    /* ============ TOAST ============ */
+    .toast {
+        position: fixed;
+        bottom: calc(20px + env(safe-area-inset-bottom));
+        right: 20px; left: 20px;
+        max-width: 380px; margin-left: auto;
+        background: #2c3e50; color: white;
+        padding: 14px 20px; border-radius: 10px;
+        opacity: 0; transform: translateY(20px);
+        transition: all 0.3s; pointer-events: none;
+        z-index: 1000;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        font-size: 0.95rem;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: #e74c3c; }
+    .toast.success { background: #27ae60; }
+
+    /* ============ МОДАЛКА КАТЕГОРИЙ ============ */
+    .modal-overlay {
+        position: fixed; inset: 0;
+        background: rgba(0,0,0,0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        padding: 16px;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+    .modal-overlay.show {
+        display: flex;
+        opacity: 1;
+    }
+    .modal {
+        background: white;
+        border-radius: 14px;
+        padding: 22px;
+        width: 100%; max-width: 440px;
+        max-height: 85vh;
+        overflow-y: auto;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        transform: scale(0.95);
+        transition: transform 0.2s;
+    }
+    .modal-overlay.show .modal { transform: scale(1); }
+    .modal h3 {
+        margin-bottom: 16px;
+        font-size: 1.15rem;
+    }
+    .modal-add-row {
+        display: flex; gap: 8px;
+        margin-bottom: 16px;
+    }
+    .modal-add-row input {
+        flex: 1; padding: 10px 12px;
+        border: 1px solid #ddd; border-radius: 8px;
+        font-size: 16px; min-height: 44px;
+        background: white; color: inherit;
+    }
+    .modal-add-row input:focus {
+        outline: none; border-color: #3498db;
+    }
+    .modal-add-row button {
+        padding: 10px 18px;
+        background: #27ae60; color: white;
+        border: none; border-radius: 8px;
+        font-weight: bold; cursor: pointer;
+        min-height: 44px;
+        transition: background 0.2s, transform 0.1s;
+    }
+    .modal-add-row button:hover { background: #219150; }
+    .modal-add-row button:active { transform: scale(0.95); }
+
+    .cat-list {
+        display: flex; flex-direction: column;
+        gap: 8px; margin-bottom: 16px;
+    }
+    .cat-item {
+        display: flex; align-items: center;
+        justify-content: space-between;
+        padding: 10px 14px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        min-height: 44px;
+    }
+    .cat-item-name {
+        font-weight: 500;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .cat-item .badge {
+        font-size: 0.7rem;
+        background: #ecf0f1;
+        color: #7f8c8d;
+        padding: 3px 8px;
+        border-radius: 10px;
+        margin-left: 8px;
+        flex-shrink: 0;
+    }
+    .cat-item .cat-del {
+        background: #e74c3c; color: white;
+        border: none; width: 32px; height: 32px;
+        border-radius: 50%; cursor: pointer;
+        font-size: 1rem; line-height: 1;
+        display: flex; align-items: center;
+        justify-content: center;
+        margin-left: 8px;
+        flex-shrink: 0;
+        transition: background 0.2s, transform 0.1s;
+    }
+    .cat-item .cat-del:hover { background: #c0392b; }
+    .cat-item .cat-del:active { transform: scale(0.9); }
+    .cat-empty {
+        text-align: center; padding: 20px;
+        color: #95a5a6; font-size: 0.9rem;
+    }
+    .modal-close {
+        width: 100%; padding: 12px;
+        background: #3498db; color: white;
+        border: none; border-radius: 8px;
+        font-size: 1rem; font-weight: bold;
+        cursor: pointer; min-height: 44px;
+        transition: background 0.2s, transform 0.1s;
+    }
+    .modal-close:hover { background: #2980b9; }
+    .modal-close:active { transform: scale(0.97); }
+
+    /* ============ ТЁМНАЯ ТЕМА ============ */
+    body.dark { background: #1a1a2e; color: #eaeaea; }
+    body.dark .block,
+    body.dark .card { background: #16213e; }
+    body.dark th { background: #0f3460; color: #aaa; }
+    body.dark tbody tr:hover { background: #0f3460; }
+    body.dark tbody tr:active { background: #16213e; }
+    body.dark .form-group input,
+    body.dark .form-group select,
+    body.dark .filters input,
+    body.dark .filters select,
+    body.dark .period-btn {
+        background: #0f3460;
+        color: #eaeaea;
+        border-color: #233;
+    }
+    body.dark .chart-container { background: #0f3460; }
+    body.dark td { border-color: #233; }
+    body.dark .modal { background: #16213e; color: #eaeaea; }
+    body.dark .cat-item { background: #0f3460; }
+    body.dark .cat-item .badge { background: #233; color: #aaa; }
+    body.dark .modal-add-row input {
+        background: #0f3460;
+        color: #eaeaea;
+        border-color: #233;
+    }
+
+    /* ============================================================
+       ПЛАНШЕТ (≤ 900px)
+       ============================================================ */
+    @media (max-width: 900px) {
+        .form-row { grid-template-columns: repeat(2, 1fr); }
+        .btn-add { grid-column: 1 / -1; width: 100%; }
+        .charts { grid-template-columns: 1fr; }
+    }
+
+    /* ============================================================
+       ТЕЛЕФОН (≤ 600px)
+       ============================================================ */
+    @media (max-width: 600px) {
+        .container { padding: 12px; }
+        header { padding: 12px 14px; }
+        header h1 { font-size: 1.05rem; }
+        .icon-btn {
+            padding: 10px; font-size: 0.85rem;
+            flex: 1 1 auto;
+        }
+        .header-actions { width: 100%; }
+
+        .cards { gap: 10px; }
+        .card { padding: 14px; }
+        .card .value { font-size: 1.25rem; }
+
+        .block { padding: 14px; border-radius: 10px; }
+        h2 { font-size: 1rem; margin-bottom: 12px; }
+
+        .form-row { grid-template-columns: 1fr; gap: 10px; }
+
+        .filters { gap: 6px; }
+        .filters input,
+        .filters select { flex: 1 1 100%; }
+        .period-btn {
+            flex: 1 1 calc(33% - 6px);
+            padding: 10px 8px;
+            font-size: 0.8rem;
+        }
+        .btn-manage-cat {
+            flex: 1 1 100%;
+        }
+
+        .table-wrapper { margin: 0 -14px; padding: 0 14px; }
+        th, td { padding: 10px 12px; font-size: 0.9rem; }
+        table { min-width: 560px; }
+
+        .chart-container { min-height: 240px; padding: 10px; }
+
+        .toast {
+            left: 12px; right: 12px;
+            bottom: calc(12px + env(safe-area-inset-bottom));
+        }
+
+        .modal { padding: 18px; }
+    }
+
+    /* ============================================================
+       УЗКИЙ ТЕЛЕФОН (≤ 380px)
+       ============================================================ */
+    @media (max-width: 380px) {
+        header h1 { font-size: 0.95rem; }
+        .icon-btn { padding: 8px; font-size: 0.75rem; }
+        .card .value { font-size: 1.1rem; }
+        .period-btn { font-size: 0.75rem; padding: 8px 6px; }
+    }
+
+    /* ============================================================
+       LANDSCAPE НА ТЕЛЕФОНЕ
+       ============================================================ */
+    @media (max-height: 500px) and (orientation: landscape) {
+        header { padding: 8px 14px; position: static; }
+        header h1 { font-size: 1rem; }
+        .container { padding: 10px; }
+        .cards { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+        .card { padding: 10px; }
+        .card .value { font-size: 1.1rem; }
+        .chart-container { min-height: 200px; }
+    }
+
+    /* ============================================================
+       ОЧЕНЬ БОЛЬШИЕ ЭКРАНЫ
+       ============================================================ */
+    @media (min-width: 1600px) {
+        .container { max-width: 1400px; }
+    }
+
+    /* ============================================================
+       ДОСТУПНОСТЬ
+       ============================================================ */
+    @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; animation: none !important; }
+    }
+</style>
+</head>
+<body>
+
+<header>
+    <h1>💰 Контроль финансов</h1>
+    <div class="header-actions">
+        <button class="icon-btn" id="toggle-theme">🌙 Тема</button>
+        <button class="icon-btn" id="export-json">📥 JSON</button>
+        <button class="icon-btn" id="export-csv">📊 CSV</button>
+        <label class="icon-btn" style="cursor:pointer">
+            📤 Импорт
+            <input type="file" id="import-file" accept=".json" hidden>
+        </label>
+    </div>
+</header>
+
+<div class="container">
+
+    <div class="cards">
+        <div class="card balance" id="card-balance">
+            <span class="label">Баланс</span>
+            <span class="value" id="balance">0 ₽</span>
+        </div>
+        <div class="card income">
+            <span class="label">Доходы</span>
+            <span class="value" id="income">0 ₽</span>
+        </div>
+        <div class="card expense">
+            <span class="label">Расходы</span>
+            <span class="value" id="expense">0 ₽</span>
+        </div>
+    </div>
+
+    <div class="block">
+        <h2>➕ Добавить операцию</h2>
+        <form id="transaction-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Тип</label>
+                    <select id="type">
+                        <option value="Доход">Доход</option>
+                        <option value="Расход" selected>Расход</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Сумма</label>
+                    <input type="number" id="amount" step="0.01" min="0.01" inputmode="decimal" placeholder="0.00" required>
+                </div>
+                <div class="form-group">
+                    <label>Категория</label>
+                    <select id="category"></select>
+                </div>
+                <div class="form-group">
+                    <label>Комментарий</label>
+                    <input type="text" id="comment" placeholder="Необязательно">
+                </div>
+                <button type="submit" class="btn-add">Добавить</button>
+            </div>
+        </form>
+    </div>
+
+    <div class="block">
+        <h2>📊 Аналитика</h2>
+        <div class="charts">
+            <div class="chart-container">
+                <h3>Расходы по категориям</h3>
+                <canvas id="pieChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <h3>Доходы vs Расходы</h3>
+                <canvas id="barChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="block">
+        <h2>📋 История операций</h2>
+
+        <div class="filters">
+            <input type="text" id="search" placeholder="🔍 Поиск...">
+            <select id="filter-type">
+                <option value="all">Все типы</option>
+                <option value="Доход">Только доходы</option>
+                <option value="Расход">Только расходы</option>
+            </select>
+            <select id="filter-category">
+                <option value="all">Все категории</option>
+            </select>
+            <button class="btn-manage-cat" id="manage-categories">⚙️ Категории</button>
+            <button class="period-btn active" data-period="all">Все</button>
+            <button class="period-btn" data-period="day">День</button>
+            <button class="period-btn" data-period="week">Неделя</button>
+            <button class="period-btn" data-period="month">Месяц</button>
+            <button class="period-btn" data-period="year">Год</button>
+        </div>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Дата</th>
+                        <th>Тип</th>
+                        <th>Сумма</th>
+                        <th>Категория</th>
+                        <th>Комментарий</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody id="transactions-body">
+                    <tr><td colspan="6" class="empty">Нет операций</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+
+<!-- МОДАЛКА УПРАВЛЕНИЯ КАТЕГОРИЯМИ -->
+<div class="modal-overlay" id="cat-modal">
+    <div class="modal">
+        <h3>⚙️ Управление категориями</h3>
+
+        <div class="modal-add-row">
+            <input type="text" id="new-cat-name" placeholder="Новая категория..." maxlength="30">
+            <button id="add-cat-btn">+ Добавить</button>
+        </div>
+
+        <div class="cat-list" id="cat-list"></div>
+
+        <button class="modal-close" id="close-cat-modal">Закрыть</button>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+    // ============================================================
+    // КОНСТАНТЫ
+    // ============================================================
+    const STORAGE_KEY = "finance_transactions_v2";
+    const CATEGORIES_KEY = "finance_categories_v1";
+
+    const DEFAULT_CATEGORIES = [
+        "Зарплата", "Еда", "Транспорт", "Развлечения",
+        "Коммунальные", "Здоровье", "Одежда", "Прочее"
+    ];
+
+    const state = {
+        search: "",
+        type: "all",
+        category: "all",
+        period: "all"
+    };
+
+    let pieChart = null;
+    let barChart = null;
+    const chartAvailable = typeof Chart !== "undefined";
+
+    // ============================================================
+    // КАТЕГОРИИ
+    // ============================================================
+    function loadCustomCategories() {
+        try {
+            const raw = localStorage.getItem(CATEGORIES_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed.filter(c => typeof c === "string" && c.trim()) : [];
+        } catch {
+            return [];
+        }
+    }
+
+    function saveCustomCategories(list) {
+        try {
+            localStorage.setItem(CATEGORIES_KEY, JSON.stringify(list));
+        } catch {
+            showToast("Ошибка сохранения категорий", "error");
+        }
+    }
+
+    function getAllCategories() {
+        const custom = loadCustomCategories();
+        // объединяем: дефолтные + кастомные, убираем дубликаты
+        const set = new Set([...DEFAULT_CATEGORIES, ...custom]);
+        return Array.from(set).sort((a, b) => a.localeCompare(b, "ru"));
+    }
+
+    function isDefaultCategory(name) {
+        return DEFAULT_CATEGORIES.includes(name);
+    }
+
+    function addCategory(name) {
+        name = String(name || "").trim();
+        if (!name) return showToast("Введите название", "error");
+        if (name.length > 30) return showToast("Слишком длинное название", "error");
+        if (getAllCategories().some(c => c.toLowerCase() === name.toLowerCase())) {
+            return showToast("Такая категория уже есть", "error");
+        }
+
+        const custom = loadCustomCategories();
+        custom.push(name);
+        saveCustomCategories(custom);
+
+        showToast("Категория добавлена ✅");
+        renderCategoryOptions();
+        renderCatModalList();
+    }
+
+    function deleteCategory(name) {
+        if (isDefaultCategory(name)) {
+            return showToast("Стандартную нельзя удалить", "error");
+        }
+
+        const used = loadTransactions().some(t => t.category === name);
+        if (used && !confirm(`В операциях есть записи с категорией "${name}". Удалить всё равно?`)) return;
+
+        saveCustomCategories(loadCustomCategories().filter(c => c !== name));
+        showToast("Категория удалена 🗑");
+        renderCategoryOptions();
+        renderCatModalList();
+
+        // если была выбрана удалённая — сбрасываем
+        if (state.category === name) {
+            state.category = "all";
+            document.getElementById("filter-category").value = "all";
+            render();
+        }
+    }
+
+    // ============================================================
+    // ОТРИСОВКА КАТЕГОРИЙ В UI
+    // ============================================================
+    function renderCategoryOptions() {
+        const cats = getAllCategories();
+
+        // Форма
+        const formSelect = document.getElementById("category");
+        const prevFormValue = formSelect.value;
+        formSelect.innerHTML = cats
+            .map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`)
+            .join("");
+        if (cats.includes(prevFormValue)) formSelect.value = prevFormValue;
+
+        // Фильтр
+        const filterSelect = document.getElementById("filter-category");
+        const prevFilterValue = filterSelect.value || "all";
+        filterSelect.innerHTML =
+            '<option value="all">Все категории</option>' +
+            cats.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join("");
+        if (cats.includes(prevFilterValue) || prevFilterValue === "all") {
+            filterSelect.value = prevFilterValue;
+        }
+    }
+
+    function renderCatModalList() {
+        const cats = getAllCategories();
+        const list = document.getElementById("cat-list");
+
+        if (!cats.length) {
+            list.innerHTML = '<div class="cat-empty">Категорий нет</div>';
+            return;
+        }
+
+        list.innerHTML = cats.map(name => {
+            const isDefault = isDefaultCategory(name);
+            return `
+                <div class="cat-item">
+                    <span class="cat-item-name">${escapeHtml(name)}</span>
+                    ${isDefault
+                        ? '<span class="badge">стандартная</span>'
+                        : `<button class="cat-del" data-cat="${escapeHtml(name)}" title="Удалить">×</button>`
+                    }
+                </div>
+            `;
+        }).join("");
+    }
+
+    // ============================================================
+    // УТИЛИТЫ
+    // ============================================================
+    function formatMoney(n) {
+        return new Intl.NumberFormat("ru-RU", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        }).format(n) + " ₽";
+    }
+
+    function showToast(msg, type = "success") {
+        const t = document.getElementById("toast");
+        t.textContent = msg;
+        t.className = "toast show " + type;
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), 2500);
+    }
+
+    function escapeHtml(s) {
+        const d = document.createElement("div");
+        d.textContent = String(s ?? "");
+        return d.innerHTML;
+    }
+
+    function formatDateDisplay(ts) {
+        const d = new Date(ts);
+        return d.toLocaleDateString("ru-RU") + ", " +
+               d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
+    }
+
+    // ============================================================
+    // ХРАНИЛИЩЕ ТРАНЗАКЦИЙ
+    // ============================================================
+    function loadTransactions() {
+        try {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            const parsed = raw ? JSON.parse(raw) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            console.error("Ошибка загрузки:", e);
+            return [];
+        }
+    }
+
+    function saveTransactions(list) {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        } catch (e) {
+            showToast("Ошибка сохранения (переполнено?)", "error");
+        }
+    }
+
+    // ============================================================
+    // ФИЛЬТРАЦИЯ
+    // ============================================================
+    function getFiltered() {
+        let list = loadTransactions();
+
+        if (state.period !== "all") {
+            const start = new Date();
+            if (state.period === "day") start.setHours(0, 0, 0, 0);
+            if (state.period === "week") start.setDate(start.getDate() - 7);
+            if (state.period === "month") start.setMonth(start.getMonth() - 1);
+            if (state.period === "year") start.setFullYear(start.getFullYear() - 1);
+            const startTs = start.getTime();
+            list = list.filter(t => t.timestamp && t.timestamp >= startTs);
+        }
+
+        if (state.type !== "all") {
+            list = list.filter(t => t.type === state.type);
+        }
+
+        if (state.category !== "all") {
+            list = list.filter(t => t.category === state.category);
+        }
+
+        if (state.search) {
+            const q = state.search.toLowerCase();
+            list = list.filter(t =>
+                (t.comment || "").toLowerCase().includes(q) ||
+                (t.category || "").toLowerCase().includes(q)
+            );
+        }
+
+        return list;
+    }
+
+    // ============================================================
+    // ОТРИСОВКА
+    // ============================================================
+    function render() {
+        const all = loadTransactions();
+        const filtered = getFiltered();
+
+        const income = all
+            .filter(t => t.type === "Доход")
+            .reduce((s, t) => s + Number(t.amount || 0), 0);
+        const expense = all
+            .filter(t => t.type === "Расход")
+            .reduce((s, t) => s + Number(t.amount || 0), 0);
+        const balance = income - expense;
+
+        document.getElementById("income").textContent = formatMoney(income);
+        document.getElementById("expense").textContent = formatMoney(expense);
+        document.getElementById("balance").textContent = formatMoney(balance);
+        document.getElementById("card-balance").classList.toggle("negative", balance < 0);
+
+        const tbody = document.getElementById("transactions-body");
+        if (!filtered.length) {
+            tbody.innerHTML = '<tr><td colspan="6" class="empty">Нет операций по фильтру</td></tr>';
+        } else {
+            const sorted = filtered.slice().sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+            tbody.innerHTML = sorted.map(t => {
+                const isInc = t.type === "Доход";
+                const sign = isInc ? "+" : "−";
+                const cls = isInc ? "type-income" : "type-expense";
+                return `<tr data-id="${t.id}">
+                    <td>${escapeHtml(formatDateDisplay(t.timestamp))}</td>
+                    <td class="${cls}">${escapeHtml(t.type)}</td>
+                    <td class="${cls}">${sign}${formatMoney(Number(t.amount))}</td>
+                    <td>${escapeHtml(t.category)}</td>
+                    <td>${escapeHtml(t.comment) || "—"}</td>
+                    <td><button class="btn-delete" data-id="${t.id}">Удалить</button></td>
+                </tr>`;
+            }).join("");
+        }
+
+        renderCharts(all);
+    }
+
+    // ============================================================
+    // ГРАФИКИ
+    // ============================================================
+    function renderCharts(transactions) {
+        if (!chartAvailable) return;
+
+        const byCat = {};
+        transactions.filter(t => t.type === "Расход").forEach(t => {
+            byCat[t.category] = (byCat[t.category] || 0) + Number(t.amount);
+        });
+
+        const pieLabels = Object.keys(byCat);
+        const pieValues = Object.values(byCat);
+
+        const pieEl = document.getElementById("pieChart");
+        if (pieEl) {
+            if (pieChart) pieChart.destroy();
+            pieChart = new Chart(pieEl.getContext("2d"), {
+                type: "doughnut",
+                data: {
+                    labels: pieLabels.length ? pieLabels : ["Нет данных"],
+                    datasets: [{
+                        data: pieValues.length ? pieValues : [1],
+                        backgroundColor: pieLabels.length
+                            ? ["#e74c3c","#e67e22","#f1c40f","#2ecc71","#1abc9c","#3498db","#9b59b6","#95a5a6","#e84393","#00b894","#6c5ce7"]
+                            : ["#ecf0f1"]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { position: "bottom" } }
+                }
+            });
+        }
+
+        const income = transactions.filter(t => t.type === "Доход")
+            .reduce((s, t) => s + Number(t.amount), 0);
+        const expense = transactions.filter(t => t.type === "Расход")
+            .reduce((s, t) => s + Number(t.amount), 0);
+
+        const barEl = document.getElementById("barChart");
+        if (barEl) {
+            if (barChart) barChart.destroy();
+            barChart = new Chart(barEl.getContext("2d"), {
+                type: "bar",
+                data: {
+                    labels: ["Доходы", "Расходы"],
+                    datasets: [{
+                        data: [income, expense],
+                        backgroundColor: ["#27ae60", "#e74c3c"],
+                        borderRadius: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true } }
+                }
+            });
+        }
+    }
+
+    // ============================================================
+    // ДОБАВЛЕНИЕ ТРАНЗАКЦИИ
+    // ============================================================
+    document.getElementById("transaction-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const amountInput = document.getElementById("amount");
+        const amount = parseFloat(amountInput.value);
+
+        if (!amount || amount <= 0 || isNaN(amount)) {
+            showToast("Введите корректную сумму", "error");
+            return;
+        }
+
+        const transaction = {
+            id: Date.now() + "_" + Math.random().toString(36).slice(2, 8),
+            timestamp: Date.now(),
+            type: document.getElementById("type").value,
+            amount: amount,
+            category: document.getElementById("category").value || "Прочее",
+            comment: document.getElementById("comment").value.trim()
+        };
+
+        const list = loadTransactions();
+        list.push(transaction);
+        saveTransactions(list);
+
+        showToast("Операция добавлена ✅");
+
+        amountInput.value = "";
+        document.getElementById("comment").value = "";
+        document.getElementById("type").value = "Расход";
+
+        render();
+    });
+
+    // ============================================================
+    // ТАБЛИЦА — делегирование
+    // ============================================================
+    document.getElementById("transactions-body").addEventListener("click", function (e) {
+        if (e.target.classList.contains("btn-delete")) {
+            e.stopPropagation();
+            const id = e.target.dataset.id;
+            if (!confirm("Удалить операцию?")) return;
+
+            saveTransactions(loadTransactions().filter(t => t.id !== id));
+            showToast("Удалено 🗑");
+            render();
+            return;
+        }
+
+        const row = e.target.closest("tr");
+        if (row && row.dataset.id) {
+            editTransaction(row.dataset.id);
+        }
+    });
+
+    function editTransaction(id) {
+        const list = loadTransactions();
+        const t = list.find(x => x.id === id);
+        if (!t) return;
+
+        const newAmount = prompt("Новая сумма:", t.amount);
+        if (newAmount === null) return;
+        const amount = parseFloat(newAmount);
+        if (!amount || amount <= 0 || isNaN(amount)) {
+            showToast("Некорректная сумма", "error");
+            return;
+        }
+
+        const newComment = prompt("Комментарий:", t.comment || "");
+        if (newComment === null) return;
+
+        t.amount = amount;
+        t.comment = newComment.trim();
+        saveTransactions(list);
+        showToast("Обновлено ✏️");
+        render();
+    }
+
+    // ============================================================
+    // ФИЛЬТРЫ
+    // ============================================================
+    document.getElementById("search").addEventListener("input", function (e) {
+        state.search = e.target.value;
+        render();
+    });
+
+    document.getElementById("filter-type").addEventListener("change", function (e) {
+        state.type = e.target.value;
+        render();
+    });
+
+    document.getElementById("filter-category").addEventListener("change", function (e) {
+        state.category = e.target.value;
+        render();
+    });
+
+    document.querySelectorAll(".period-btn").forEach(function (btn) {
+        btn.addEventListener("click", function () {
+            document.querySelectorAll(".period-btn").forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            state.period = btn.dataset.period;
+            render();
+        });
+    });
+
+    // ============================================================
+    // МОДАЛКА КАТЕГОРИЙ
+    // ============================================================
+    const catModal = document.getElementById("cat-modal");
+
+    document.getElementById("manage-categories").addEventListener("click", function () {
+        renderCatModalList();
+        catModal.classList.add("show");
+        setTimeout(() => document.getElementById("new-cat-name").focus(), 100);
+    });
+
+    document.getElementById("close-cat-modal").addEventListener("click", function () {
+        catModal.classList.remove("show");
+    });
+
+    catModal.addEventListener("click", function (e) {
+        if (e.target === catModal) catModal.classList.remove("show");
+    });
+
+    document.getElementById("add-cat-btn").addEventListener("click", function () {
+        const input = document.getElementById("new-cat-name");
+        addCategory(input.value);
+        input.value = "";
+        input.focus();
+    });
+
+    document.getElementById("new-cat-name").addEventListener("keydown", function (e) {
+        if (e.key === "Enter") {
+            e.preventDefault();
+            document.getElementById("add-cat-btn").click();
+        }
+    });
+
+    document.getElementById("cat-list").addEventListener("click", function (e) {
+        if (e.target.classList.contains("cat-del")) {
+            const name = e.target.dataset.cat;
+            deleteCategory(name);
+        }
+    });
+
+    // Закрытие по Escape
+    document.addEventListener("keydown", function (e) {
+        if (e.key === "Escape" && catModal.classList.contains("show")) {
+            catModal.classList.remove("show");
+        }
+    });
+
+    // ============================================================
+    // ЭКСПОРТ / ИМПОРТ
+    // ============================================================
+    document.getElementById("export-json").addEventListener("click", function () {
+        const payload = {
+            transactions: loadTransactions(),
+            customCategories: loadCustomCategories(),
+            exportedAt: new Date().toISOString()
+        };
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "finances_" + Date.now() + ".json";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast("Экспорт JSON ✅");
+    });
+
+    document.getElementById("export-csv").addEventListener("click", function () {
+        const rows = [["Дата", "Тип", "Сумма", "Категория", "Комментарий"]];
+        loadTransactions().forEach(t => {
+            rows.push([formatDateDisplay(t.timestamp), t.type, t.amount, t.category, t.comment]);
+        });
+        const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+        const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "finances.csv";
+        a.click();
+        URL.revokeObjectURL(a.href);
+        showToast("Экспорт CSV ✅");
+    });
+
+    document.getElementById("import-file").addEventListener("change", function (e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function (ev) {
+            try {
+                const imported = JSON.parse(ev.target.result);
+
+                // Поддерживаем оба формата: массив или объект {transactions, customCategories}
+                let transactions, customCategories;
+                if (Array.isArray(imported)) {
+                    transactions = imported;
+                } else if (imported && Array.isArray(imported.transactions)) {
+                    transactions = imported.transactions;
+                    customCategories = imported.customCategories;
+                } else {
+                    throw new Error("Неверный формат");
+                }
+
+                const clean = transactions
+                    .filter(t => t && typeof t === "object" && t.amount && t.type)
+                    .map(t => ({
+                        id: t.id || (Date.now() + "_" + Math.random().toString(36).slice(2, 8)),
+                        timestamp: t.timestamp || Date.now(),
+                        type: t.type === "Доход" ? "Доход" : "Расход",
+                        amount: Number(t.amount),
+                        category: t.category || "Прочее",
+                        comment: t.comment || ""
+                    }));
+
+                saveTransactions(clean);
+
+                if (Array.isArray(customCategories)) {
+                    const valid = customCategories.filter(c => typeof c === "string" && c.trim());
+                    saveCustomCategories(valid);
+                    renderCategoryOptions();
+                }
+
+                render();
+                showToast("Импортировано: " + clean.length, "success");
+            } catch (err) {
+                showToast("Некорректный файл", "error");
+            }
+        };
+        reader.readAsText(file);
+        e.target.value = "";
+    });
+
+    // ============================================================
+    // ТЕМА
+    // ============================================================
+    document.getElementById("toggle-theme").addEventListener("click", function () {
+        document.body.classList.toggle("dark");
+        localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+    });
+
+    if (localStorage.getItem("theme") === "dark") {
+        document.body.classList.add("dark");
+    }
+
+    // ============================================================
+    // СТАРТ
+    // ============================================================
+    renderCategoryOptions();
+    render();
+
+    if (!chartAvailable) {
+        console.warn("Chart.js не загрузился — графики отключены");
+    }
+</script>
+
+</body>
+</html>
